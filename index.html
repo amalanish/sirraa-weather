@@ -8,9 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 
-<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
@@ -196,13 +194,13 @@
     <div id="details-grid" class="hidden" style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
       <div><strong>Wind Speed:</strong> <span id="wind-speed"></span></div>
       <div><strong>Humidity:</strong> <span id="humidity"></span></div>
-      <div><strong>Feels Like:</strong> <span id="feels-like"></span></div>
+      <div><strong>Max Temp:</strong> <span id="max-temp"></span></div>
+      <div><strong>Min Temp:</strong> <span id="min-temp"></span></div>
     </div>
 
     <button id="hourly-toggle" style="display:none; margin-top: 20px;">Show Hourly Weather ▼</button>
     <div id="hourly-container" style="display:none;"></div>
 
-    <!-- Map container -->
     <div id="map"></div>
 </div>
 
@@ -221,7 +219,8 @@
 
   const windSpeedEl = document.getElementById('wind-speed');
   const humidityEl = document.getElementById('humidity');
-  const feelsLikeEl = document.getElementById('feels-like');
+  const maxTempEl = document.getElementById('max-temp');
+  const minTempEl = document.getElementById('min-temp');
 
   const iconEl = document.getElementById('weather-icon');
 
@@ -230,7 +229,7 @@
 
   const suggestionBox = document.getElementById('suggestion-box');
 
-  const API_KEY = 'baafbbbcca324f6487962853250410';
+  const API_KEY = 'baafbbbcca324f6487962853250410'; // Using your provided key
 
   let map = null;
   let marker = null;
@@ -248,7 +247,7 @@
 
   function updateWeatherDisplay(data) {
     detailsGridEl.classList.remove('fade-in');
-    void detailsGridEl.offsetWidth;
+    void detailsGridEl.offsetWidth; // Force reflow to restart animation
 
     cityNameEl.textContent = data.name;
     displayDateEl.textContent = data.dateString;
@@ -259,7 +258,8 @@
 
     windSpeedEl.textContent = ${data.wind.toFixed(1)} m/s;
     humidityEl.textContent = ${data.humidity}%;
-    feelsLikeEl.textContent = ${Math.round(data.feels)}°C;
+    maxTempEl.textContent = ${Math.round(data.maxTemp)}°C;
+    minTempEl.textContent = ${Math.round(data.minTemp)}°C;
 
     detailsGridEl.classList.remove('hidden');
     detailsGridEl.classList.add('fade-in');
@@ -268,7 +268,7 @@
       if (!map) {
         map = L.map('map').setView([data.lat, data.lon], 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
         marker = L.marker([data.lat, data.lon]).addTo(map);
       } else {
@@ -356,10 +356,15 @@
     try {
       const response = await fetch(apiUrl);
       const data = await response.json();
+
+      if (data.error) {
+          throw new Error(data.error.message);
+      }
+
       const dayData = data.forecast.forecastday[0].day;
       const hourlyDataRaw = data.forecast.forecastday[0].hour || [];
 
-      const windSpeedMs = dayData.maxwind_kph * 0.27778;
+      const windSpeedMs = dayData.maxwind_kph * 0.27778; // Convert kph to m/s
 
       const hourly = hourlyDataRaw.map(hour => ({
         time: hour.time,
@@ -375,7 +380,8 @@
         desc: dayData.condition.text,
         wind: windSpeedMs,
         humidity: dayData.avghumidity,
-        feels: dayData.maxtemp_c,
+        maxTemp: dayData.maxtemp_c,
+        minTemp: dayData.mintemp_c,
         hourly,
         lat: data.location.lat,
         lon: data.location.lon
@@ -436,7 +442,9 @@
     }
   });
 
+  // Set default date to today and fetch initial weather for a default city
   dateInput.value = new Date().toISOString().split('T')[0];
+  fetchWeatherData('London', dateInput.value);
 })();
 </script>
 </body>
