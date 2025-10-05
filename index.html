@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vibrant Weather App</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1564053489984-3c7bb6bd5f12?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    color: white;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .weather-container {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    max-width: 500px;
+    width: 100%;
+  }
+
+  input[type="text"], input[type="date"] {
+    padding: 10px;
+    margin-right: 5px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  input::placeholder {
+    color: #ddd;
+  }
+
+  button {
+    padding: 10px 15px;
+    font-size: 1rem;
+    cursor: pointer;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+
+  button:hover {
+      background-color: #357ABD;
+  }
+
+  .suggestions-box {
+    position: absolute;
+    background: rgba(40, 40, 40, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 70%;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+    border-radius: 5px;
+  }
+
+  .suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #eee;
+  }
+
+  .suggestion-item:hover {
+    background-color: rgba(74, 144, 226, 0.5);
+  }
+
+  #hourly-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .hourly-item {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+  }
+
+  .hourly-item:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .icon-placeholder {
+    font-size: 3rem;
+    margin-right: 15px;
+  }
+
+  #details-grid.hidden {
+    display: none;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+  }
+
+  #error-msg {
+    color: #ff8a80;
+    background: rgba(255, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  .weather-header {
+    display: flex;
+    align-items: center;
+    margin-top: 15px;
+    font-size: 1.8rem;
+  }
+
+  #display-temp {
+    font-weight: bold;
+    font-size: 3rem;
+  }
+
+  h1 {
+    margin-top: 0;
+  }
+
+  #map {
+    width: 100%;
+    height: 300px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="weather-container">
+    <h1>Weather App</h1>
+
+    <div style="position:relative;">
+      <input id="city-input" type="text" placeholder="Enter city" autocomplete="off" style="width:70%;" />
+      <div id="suggestion-box" class="suggestions-box" style="display:none;"></div>
+    </div>
+
+    <input id="date-input" type="date" />
+    <button id="search-btn">Search</button>
+
+    <div id="error-msg"></div>
+
+    <h2 class="city-name">Weather</h2>
+    <div id="display-date"></div>
+    <div class="weather-header">
+      <i id="weather-icon" class="fas fa-cloud icon-placeholder"></i>
+      <span id="display-temp">--°C</span>
+    </div>
+    <div id="display-desc" style="font-size: 1.2rem; margin-top: 5px;">---</div>
+
+    <div id="details-grid" class="hidden" style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div><strong>Wind Speed:</strong> <span id="wind-speed"></span></div>
+      <div><strong>Humidity:</strong> <span id="humidity"></span></div>
+      <div><strong>Feels Like:</strong> <span id="feels-like"></span></div>
+    </div>
+
+    <button id="hourly-toggle" style="display:none; margin-top: 20px;">Show Hourly Weather ▼</button>
+    <div id="hourly-container" style="display:none;"></div>
+
+    <!-- Map container -->
+    <div id="map"></div>
+</div>
+
+<script>
+(() => {
+  const cityInput = document.getElementById('city-input');
+  const dateInput = document.getElementById('date-input');
+  const searchBtn = document.getElementById('search-btn');
+
+  const cityNameEl = document.querySelector('.city-name');
+  const displayDateEl = document.getElementById('display-date');
+  const displayTempEl = document.getElementById('display-temp');
+  const displayDescEl = document.getElementById('display-desc');
+  const detailsGridEl = document.getElementById('details-grid');
+  const errorMsgEl = document.getElementById('error-msg');
+
+  const windSpeedEl = document.getElementById('wind-speed');
+  const humidityEl = document.getElementById('humidity');
+  const feelsLikeEl = document.getElementById('feels-like');
+
+  const iconEl = document.getElementById('weather-icon');
+
+  const hourlyToggleBtn = document.getElementById('hourly-toggle');
+  const hourlyContainer = document.getElementById('hourly-container');
+
+  const suggestionBox = document.getElementById('suggestion-box');
+
+  const API_KEY = 'baafbbbcca324f6487962853250410';
+
+  let map = null;
+  let marker = null;
+
+  function getWeatherIcon(description) {
+    const lowerDesc = description.toLowerCase();
+    if (lowerDesc.includes('clear') || lowerDesc.includes('sunny')) return 'fa-sun';
+    if (lowerDesc.includes('cloud') || lowerDesc.includes('overcast')) return 'fa-cloud';
+    if (lowerDesc.includes('rain') || lowerDesc.includes('drizzle')) return 'fa-cloud-showers-heavy';
+    if (lowerDesc.includes('snow') || lowerDesc.includes('sleet') || lowerDesc.includes('ice')) return 'fa-snowflake';
+    if (lowerDesc.includes('thunder')) return 'fa-bolt';
+    if (lowerDesc.includes('fog') || lowerDesc.includes('mist') || lowerDesc.includes('haze')) return 'fa-smog';
+    return 'fa-cloud-sun';
+  }
+
+  function updateWeatherDisplay(data) {
+    detailsGridEl.classList.remove('fade-in');
+    void detailsGridEl.offsetWidth;
+
+    cityNameEl.textContent = data.name;
+    displayDateEl.textContent = data.dateString;
+    displayTempEl.textContent = ${Math.round(data.temp)}°C;
+    displayDescEl.textContent = data.desc;
+
+    iconEl.className = fas ${getWeatherIcon(data.desc)} icon-placeholder;
+
+    windSpeedEl.textContent = ${data.wind.toFixed(1)} m/s;
+    humidityEl.textContent = ${data.humidity}%;
+    feelsLikeEl.textContent = ${Math.round(data.feels)}°C;
+
+    detailsGridEl.classList.remove('hidden');
+    detailsGridEl.classList.add('fade-in');
+
+    if (data.lat && data.lon) {
+      if (!map) {
+        map = L.map('map').setView([data.lat, data.lon], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        marker = L.marker([data.lat, data.lon]).addTo(map);
+      } else {
+        map.setView([data.lat, data.lon], 10);
+        marker.setLatLng([data.lat, data.lon]);
+      }
+    }
+
+    if (data.hourly && data.hourly.length > 0) {
+      hourlyToggleBtn.style.display = 'inline-block';
+      hourlyToggleBtn.textContent = 'Show Hourly Weather ▼';
+      hourlyContainer.style.display = 'none';
+      hourlyContainer.innerHTML = '';
+      hourlyContainer.classList.remove('fade-in');
+
+      data.hourly.forEach(hour => {
+        const hourEl = document.createElement('div');
+        hourEl.className = 'hourly-item';
+        hourEl.innerHTML = `
+          <div><strong>${new Date(hour.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</strong></div>
+          <div><i class="fas ${hour.iconClass}"></i></div>
+          <div>${Math.round(hour.temp)}°C</div>
+        `;
+        hourlyContainer.appendChild(hourEl);
+      });
+    } else {
+      hourlyToggleBtn.style.display = 'none';
+      hourlyContainer.style.display = 'none';
+    }
+  }
+
+  hourlyToggleBtn.addEventListener('click', () => {
+    const isHidden = hourlyContainer.style.display === 'none';
+    if (isHidden) {
+      hourlyContainer.style.display = 'grid';
+      hourlyContainer.classList.add('fade-in');
+      hourlyToggleBtn.textContent = 'Hide Hourly Weather ▲';
+    } else {
+      hourlyContainer.style.display = 'none';
+      hourlyToggleBtn.textContent = 'Show Hourly Weather ▼';
+    }
+  });
+
+  searchBtn.addEventListener('click', () => {
+    const city = cityInput.value;
+    const date = dateInput.value;
+    if (city && date) {
+        fetchWeatherData(city, date);
+    } else {
+        errorMsgEl.textContent = 'Please enter both a city and a date.';
+        errorMsgEl.style.display = 'block';
+    }
+  });
+
+  async function fetchWeatherData(city, date) {
+    errorMsgEl.style.display = 'none';
+    detailsGridEl.classList.add('hidden');
+    cityNameEl.textContent = 'Searching...';
+    displayTempEl.textContent = '--°C';
+    displayDescEl.textContent = '...';
+    iconEl.className = 'fas fa-spinner fa-spin icon-placeholder';
+    searchBtn.disabled = true;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateObj = new Date(date);
+    const todayObj = new Date(todayStr);
+    const fourteenDaysAhead = new Date(todayObj);
+    fourteenDaysAhead.setDate(todayObj.getDate() + 14);
+
+    if (dateObj > fourteenDaysAhead) {
+        errorMsgEl.textContent = 'Forecast data is limited to 14 days in the future.';
+        errorMsgEl.style.display = 'block';
+        cityNameEl.textContent = 'Weather';
+        searchBtn.disabled = false;
+        return;
+    }
+
+    let apiUrl;
+    if (date >= todayStr) {
+      apiUrl = https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${encodeURIComponent(city)}&dt=${date};
+    } else {
+      apiUrl = https://api.weatherapi.com/v1/history.json?key=${API_KEY}&q=${encodeURIComponent(city)}&dt=${date};
+    }
+
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      const dayData = data.forecast.forecastday[0].day;
+      const hourlyDataRaw = data.forecast.forecastday[0].hour || [];
+
+      const windSpeedMs = dayData.maxwind_kph * 0.27778;
+
+      const hourly = hourlyDataRaw.map(hour => ({
+        time: hour.time,
+        temp: hour.temp_c,
+        desc: hour.condition.text,
+        iconClass: getWeatherIcon(hour.condition.text),
+      }));
+
+      const weatherData = {
+        name: ${data.location.name}, ${data.location.country},
+        dateString: new Date(date + 'T00:00:00').toDateString(),
+        temp: dayData.avgtemp_c,
+        desc: dayData.condition.text,
+        wind: windSpeedMs,
+        humidity: dayData.avghumidity,
+        feels: dayData.maxtemp_c,
+        hourly,
+        lat: data.location.lat,
+        lon: data.location.lon
+      };
+
+      updateWeatherDisplay(weatherData);
+    } catch (error) {
+      cityNameEl.textContent = 'Weather';
+      displayDescEl.textContent = 'Error';
+      iconEl.className = 'fas fa-exclamation-triangle icon-placeholder';
+      errorMsgEl.textContent = Error: ${error.message};
+      errorMsgEl.style.display = 'block';
+    } finally {
+      searchBtn.disabled = false;
+    }
+  }
+
+  async function fetchCitySuggestions(query) {
+    if (!query) {
+      suggestionBox.style.display = 'none';
+      return;
+    }
+
+    try {
+      const url = https://api.teleport.org/api/cities/?search=${encodeURIComponent(query)}&limit=5;
+      const response = await fetch(url);
+      const data = await response.json();
+      const cities = data._embedded?.['city:search-results'] || [];
+
+      suggestionBox.innerHTML = '';
+      if (cities.length > 0) {
+        suggestionBox.style.display = 'block';
+        cities.forEach(city => {
+          const suggestionItem = document.createElement('div');
+          suggestionItem.className = 'suggestion-item';
+          suggestionItem.textContent = city.matching_full_name;
+          suggestionItem.addEventListener('click', () => {
+            cityInput.value = city.matching_full_name.split(',')[0];
+            suggestionBox.style.display = 'none';
+          });
+          suggestionBox.appendChild(suggestionItem);
+        });
+      } else {
+        suggestionBox.style.display = 'none';
+      }
+    } catch (error) {
+      suggestionBox.style.display = 'none';
+    }
+  }
+
+  cityInput.addEventListener('input', () => {
+    fetchCitySuggestions(cityInput.value);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!suggestionBox.contains(event.target) && event.target !== cityInput) {
+        suggestionBox.style.display = 'none';
+    }
+  });
+
+  dateInput.value = new Date().toISOString().split('T')[0];
+})();
+</script>
+</body>
+</html>
