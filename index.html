@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Vibrant Weather App</title>
+<title>Sirra Weather</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -171,7 +171,7 @@
 <body>
 
 <div class="weather-container">
-    <h1>Weather App</h1>
+    <h1>Sirra Weather</h1>
 
     <div style="position:relative;">
       <input id="city-input" type="text" placeholder="Enter city" autocomplete="off" style="width:70%;" />
@@ -251,15 +251,15 @@
 
     cityNameEl.textContent = data.name;
     displayDateEl.textContent = data.dateString;
-    displayTempEl.textContent = ${Math.round(data.temp)}°C;
+    displayTempEl.textContent = `${Math.round(data.temp)}°C`;
     displayDescEl.textContent = data.desc;
 
-    iconEl.className = fas ${getWeatherIcon(data.desc)} icon-placeholder;
+    iconEl.className = `fas ${getWeatherIcon(data.desc)} icon-placeholder`;
 
-    windSpeedEl.textContent = ${data.wind.toFixed(1)} m/s;
-    humidityEl.textContent = ${data.humidity}%;
-    maxTempEl.textContent = ${Math.round(data.maxTemp)}°C;
-    minTempEl.textContent = ${Math.round(data.minTemp)}°C;
+    windSpeedEl.textContent = `${data.wind.toFixed(1)} m/s`;
+    humidityEl.textContent = `${data.humidity}%`;
+    maxTempEl.textContent = `${Math.round(data.maxTemp)}°C`;
+    minTempEl.textContent = `${Math.round(data.minTemp)}°C`;
 
     detailsGridEl.classList.remove('hidden');
     detailsGridEl.classList.add('fade-in');
@@ -348,9 +348,9 @@
 
     let apiUrl;
     if (date >= todayStr) {
-      apiUrl = https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${encodeURIComponent(city)}&dt=${date};
+      apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${encodeURIComponent(city)}&dt=${date}`;
     } else {
-      apiUrl = https://api.weatherapi.com/v1/history.json?key=${API_KEY}&q=${encodeURIComponent(city)}&dt=${date};
+      apiUrl = `https://api.weatherapi.com/v1/history.json?key=${API_KEY}&q=${encodeURIComponent(city)}&dt=${date}`;
     }
 
     try {
@@ -374,7 +374,7 @@
       }));
 
       const weatherData = {
-        name: ${data.location.name}, ${data.location.country},
+        name: `${data.location.name}, ${data.location.country}`,
         dateString: new Date(date + 'T00:00:00').toDateString(),
         temp: dayData.avgtemp_c,
         desc: dayData.condition.text,
@@ -392,7 +392,7 @@
       cityNameEl.textContent = 'Weather';
       displayDescEl.textContent = 'Error';
       iconEl.className = 'fas fa-exclamation-triangle icon-placeholder';
-      errorMsgEl.textContent = Error: ${error.message};
+      errorMsgEl.textContent = `Error: ${error.message}`;
       errorMsgEl.style.display = 'block';
     } finally {
       searchBtn.disabled = false;
@@ -406,7 +406,7 @@
     }
 
     try {
-      const url = https://api.teleport.org/api/cities/?search=${encodeURIComponent(query)}&limit=5;
+      const url = `https://api.teleport.org/api/cities/?search=${encodeURIComponent(query)}&limit=5`;
       const response = await fetch(url);
       const data = await response.json();
       const cities = data._embedded?.['city:search-results'] || [];
